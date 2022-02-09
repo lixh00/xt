@@ -53,6 +53,15 @@ func Add(tdb DatabaseClientInfo) error {
 		return err
 	}
 	clientMap[tdb.TenantId] = engine
+
+	// 同步模型
+	syncModelsLock.Lock()
+	defer syncModelsLock.Unlock()
+	for i := range syncModels {
+		if err = syncModel(engine, syncModels[i]); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -64,6 +73,23 @@ func AddModel(m interface{}) error {
 
 	syncModels = append(syncModels, m)
 	return nil
+}
+
+// AddModels 添加一堆需要同步的模型
+func AddModels(m ...interface{}) error {
+	if len(m) == 0 {
+		return nil
+	}
+
+	// 加把锁
+	syncModelsLock.Lock()
+	defer syncModelsLock.Unlock()
+	var err error
+	for _, v := range m {
+		err = AddModel(v)
+	}
+
+	return err
 }
 
 // 同步模型到数据库
