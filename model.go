@@ -27,7 +27,8 @@ func (c DatabaseClientInfo) GetDSN() string {
 // MultiTenantContext 多租户上下文
 type MultiTenantContext struct {
 	*gin.Context
-	DB *xorm.Engine
+	TenantId uint
+	DB       *xorm.Engine
 }
 
 // MultiTenantHandlerFunc 处理函数

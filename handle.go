@@ -15,6 +15,7 @@ func GinHandler(handler MultiTenantHandlerFunc) gin.HandlerFunc {
 			ctx.JSON(http.StatusForbidden, response{http.StatusForbidden, nil, err.Error()})
 			return
 		}
+		mc.TenantId = tid
 		if db, exist := clientMap[tid]; exist {
 			mc.DB = db
 		} else {

@@ -65,6 +65,16 @@ func Add(tdb DatabaseClientInfo) error {
 	return nil
 }
 
+// GetByTenantId 根据租户Id获取数据库连接对象
+func GetByTenantId(tenantId uint) (*xorm.Engine, error) {
+	clientMapLock.Lock()
+	defer clientMapLock.Unlock()
+	if client, exist := clientMap[tenantId]; exist {
+		return client, nil
+	}
+	return nil, errors.New("not found")
+}
+
 // AddModel 添加一个需要同步的模型
 func AddModel(m interface{}) error {
 	// 加把锁
