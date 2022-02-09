@@ -17,6 +17,10 @@
  2. 根据租户Id返回不同的数据库连接对象和`gin.Context`
 
 ### 食用方式
+0. 安装依赖
+```shell
+go get github.com/lixh00/xt
+```
 1. 先添加需要同步的Model，如果不需要可以不执行这个步骤
 ```go
 if err := xt.AddModel(new(En));err != nil {
