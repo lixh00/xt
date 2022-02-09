@@ -1,4 +1,4 @@
-module xt
+module github.com/lixh00/xt
 
 go 1.17
 
