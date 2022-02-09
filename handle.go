@@ -10,7 +10,7 @@ func GinHandler(handler MultiTenantHandlerFunc) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		mc := new(MultiTenantContext)
 		mc.Context = ctx
-		tid, err := getTenantId(ctx)
+		tid, err := tenantIdResolver(ctx)
 		if err != nil {
 			ctx.JSON(http.StatusForbidden, response{http.StatusForbidden, nil, err.Error()})
 			return

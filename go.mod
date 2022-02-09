@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/gin-gonic/gin v1.7.7
+	github.com/go-sql-driver/mysql v1.4.1
 	github.com/go-xorm/xorm v0.7.9
 )
 
@@ -22,6 +23,7 @@ require (
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/sys v0.0.0-20200116001909-b77594299b42 // indirect
+	google.golang.org/appengine v1.6.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 	xorm.io/builder v0.3.6 // indirect
 	xorm.io/core v0.7.2-0.20190928055935-90aeac8d08eb // indirect

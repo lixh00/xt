@@ -2,12 +2,12 @@ package xt
 
 import (
 	"errors"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
 	"sync"
 )
 
 var (
-	once             sync.Once
 	clientMap        map[uint]*xorm.Engine // 存储所有的数据库连接
 	clientMapLock    sync.Mutex            // 一把锁
 	syncModels       []interface{}         // 同步的模型
