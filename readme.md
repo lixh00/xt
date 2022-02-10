@@ -1,4 +1,4 @@
-## 基于`xorm`和`Gin`封装的多租户处理框架
+## 基于`xorm`(`gorm`分支是基于`gorm`的)和`Gin`封装的多租户处理框架
 
 ### 多租户方案
 当下主流的多租户方案通常有三种：
@@ -27,7 +27,7 @@ if err := xt.AddModel(new(En));err != nil {
     panic(err)
 }
 ```
-2. 创建一个提供租户数据库配置信息的函数，此步骤为必须
+2. 创建一个提供租户数据库配置信息的函数，此步骤为必须(这儿是个参考，也可以不用xorm，只要返回数据匹配即可)
 ```go
 func GetTenantDbInfos() []xt.DatabaseClientInfo {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%v)/%s?charset=utf8mb4&parseTime=True&loc=Local",

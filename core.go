@@ -2,24 +2,36 @@ package xt
 
 import (
 	"errors"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/go-xorm/xorm"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"io"
+	"log"
+	"os"
 	"sync"
+	"time"
 )
 
 var (
-	clientMap        map[uint]*xorm.Engine // 存储所有的数据库连接
-	clientMapLock    sync.Mutex            // 一把锁
-	syncModels       []interface{}         // 同步的模型
-	syncModelsLock   sync.Mutex            // 一把锁
-	autoSyncClient   bool                  // 是否自动同步连接配置
-	tenantDBProvider TenantDBProvider      // 租户数据库提供者
-	tenantIdResolver TenantIdResolver      // 租户ID解析器
+	clientMap        map[uint]*gorm.DB // 存储所有的数据库连接
+	clientMapLock    sync.Mutex        // 一把锁
+	syncModels       []interface{}     // 同步的模型
+	syncModelsLock   sync.Mutex        // 一把锁
+	autoSyncClient   bool              // 是否自动同步连接配置
+	tenantDBProvider TenantDBProvider  // 租户数据库提供者
+	tenantIdResolver TenantIdResolver  // 租户ID解析器
+	logs             io.Writer         // 日志输出
 )
 
 func init() {
-	clientMap = make(map[uint]*xorm.Engine)
+	clientMap = make(map[uint]*gorm.DB)
 	syncModels = make([]interface{}, 0)
+	logs = os.Stdout
+}
+
+// SetLogger 设置日志输出工具
+func SetLogger(out io.Writer) {
+	logs = out
 }
 
 // Init 初始化
@@ -69,7 +81,16 @@ func Add(tdb DatabaseClientInfo) error {
 		return nil
 	}
 	// 创建数据库连接
-	engine, err := xorm.NewEngine("mysql", tdb.GetDSN())
+	gl := logger.New(
+		log.New(logs, "", log.LstdFlags),
+		logger.Config{
+			SlowThreshold:             time.Second, // Slow SQL threshold
+			IgnoreRecordNotFoundError: false,       // 忽略没找到结果的错误
+			LogLevel:                  logger.Info, // Log level
+			Colorful:                  false,       // Disable color
+		},
+	)
+	engine, err := gorm.Open(mysql.Open(tdb.GetDSN()), &gorm.Config{Logger: gl})
 	if err != nil {
 		return err
 	}
@@ -87,7 +108,7 @@ func Add(tdb DatabaseClientInfo) error {
 }
 
 // GetByTenantId 根据租户Id获取数据库连接对象
-func GetByTenantId(tenantId uint) (*xorm.Engine, error) {
+func GetByTenantId(tenantId uint) (*gorm.DB, error) {
 	clientMapLock.Lock()
 	defer clientMapLock.Unlock()
 	if client, exist := clientMap[tenantId]; exist {
@@ -124,11 +145,11 @@ func AddModels(m ...interface{}) error {
 }
 
 // 同步模型到数据库
-func syncModel(e *xorm.Engine, m interface{}) error {
+func syncModel(e *gorm.DB, m interface{}) error {
 	if e == nil || m == nil {
 		return errors.New("engine or model is nil")
 	}
-	if err := e.Sync2(m); err != nil {
+	if err := e.AutoMigrate(m); err != nil {
 		return err
 	}
 	return nil

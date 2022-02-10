@@ -3,7 +3,7 @@ package xt
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/go-xorm/xorm"
+	"gorm.io/gorm"
 )
 
 // DatabaseClientInfo 数据库连接配置
@@ -28,7 +28,7 @@ func (c DatabaseClientInfo) GetDSN() string {
 type MultiTenantContext struct {
 	*gin.Context
 	TenantId uint
-	DB       *xorm.Engine
+	DB       *gorm.DB
 }
 
 // MultiTenantHandlerFunc 处理函数
