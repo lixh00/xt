@@ -12,6 +12,8 @@ var (
 	clientMapLock    sync.Mutex            // 一把锁
 	syncModels       []interface{}         // 同步的模型
 	syncModelsLock   sync.Mutex            // 一把锁
+	autoSyncClient   bool                  // 是否自动同步连接配置
+	tenantDBProvider TenantDBProvider      // 租户数据库提供者
 	tenantIdResolver TenantIdResolver      // 租户ID解析器
 )
 
@@ -21,22 +23,41 @@ func init() {
 }
 
 // Init 初始化
-func Init(p TenantDBProvider, i TenantIdResolver) error {
+func Init(p TenantDBProvider, i TenantIdResolver, auto ...bool) error {
 	if p == nil {
 		return errors.New("db provider is nil")
 	}
+	tenantDBProvider = p
 	if i == nil {
 		tenantIdResolver = getTenantId
 	} else {
 		tenantIdResolver = i
 	}
-	clients := p()
+	clients := tenantDBProvider()
 	for _, c := range clients {
 		if err := Add(c); err != nil {
 			return err
 		}
 	}
+	if len(auto) > 0 {
+		autoSyncClient = auto[0]
+		go autoSyncClientHandle()
+	}
 	return nil
+}
+
+// 自动同步连接配置
+func autoSyncClientHandle() {
+	for autoSyncClient {
+		clients := tenantDBProvider()
+		if len(clients) != len(clientMap) {
+			for _, c := range clients {
+				if err := Add(c); err != nil {
+					continue
+				}
+			}
+		}
+	}
 }
 
 // Add 添加一个数据库连接
