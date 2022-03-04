@@ -10,12 +10,13 @@ func GinHandler(handler MultiTenantHandlerFunc) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		mc := new(MultiTenantContext)
 		mc.Context = ctx
-		tid, err := tenantIdResolver(ctx)
+		tid, ti, err := tenantIdResolver(ctx)
 		if err != nil {
 			ctx.JSON(http.StatusForbidden, response{http.StatusForbidden, nil, err.Error()})
 			return
 		}
 		mc.TenantId = tid
+		mc.TenantInfo = ti
 		if db, exist := clientMap[tid]; exist {
 			mc.DB = db
 		} else {
@@ -27,10 +28,10 @@ func GinHandler(handler MultiTenantHandlerFunc) gin.HandlerFunc {
 }
 
 // 获取租户ID
-func getTenantId(ctx *gin.Context) (uint, error) {
+func getTenantId(ctx *gin.Context) (id uint, info TenantInfo, err error) {
 	var p tenantInfo
-	if err := ctx.ShouldBindHeader(&p); err != nil {
-		return 0, err
+	if err = ctx.ShouldBindHeader(&p); err != nil {
+		return
 	}
-	return p.TenantId, nil
+	return p.TenantId, clientInfoMap[p.TenantId], nil
 }

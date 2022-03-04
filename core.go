@@ -13,18 +13,20 @@ import (
 )
 
 var (
-	clientMap        map[uint]*gorm.DB // 存储所有的数据库连接
-	clientMapLock    sync.Mutex        // 一把锁
-	syncModels       []interface{}     // 同步的模型
-	syncModelsLock   sync.Mutex        // 一把锁
-	autoSyncClient   bool              // 是否自动同步连接配置
-	tenantDBProvider TenantDBProvider  // 租户数据库提供者
-	tenantIdResolver TenantIdResolver  // 租户ID解析器
-	logs             io.Writer         // 日志输出
+	clientMap        map[uint]*gorm.DB   // 存储所有的数据库连接
+	clientInfoMap    map[uint]TenantInfo // 租户信息
+	clientMapLock    sync.Mutex          // 一把锁
+	syncModels       []interface{}       // 同步的模型
+	syncModelsLock   sync.Mutex          // 一把锁
+	autoSyncClient   bool                // 是否自动同步连接配置
+	tenantDBProvider TenantDBProvider    // 租户数据库提供者
+	tenantIdResolver TenantIdResolver    // 租户ID解析器
+	logs             io.Writer           // 日志输出
 )
 
 func init() {
 	clientMap = make(map[uint]*gorm.DB)
+	clientInfoMap = make(map[uint]TenantInfo)
 	syncModels = make([]interface{}, 0)
 	logs = os.Stdout
 }
@@ -95,6 +97,7 @@ func Add(tdb DatabaseClientInfo) error {
 		return err
 	}
 	clientMap[tdb.TenantId] = engine
+	clientInfoMap[tdb.TenantId] = tdb.Info
 
 	// 同步模型
 	syncModelsLock.Lock()

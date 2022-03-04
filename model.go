@@ -8,12 +8,13 @@ import (
 
 // DatabaseClientInfo 数据库连接配置
 type DatabaseClientInfo struct {
-	TenantId uint   // 租户ID
-	Host     string // 数据库地址
-	Port     int    // 数据库端口
-	User     string // 数据库用户名
-	Password string // 数据库密码
-	Db       string // 数据库名称
+	TenantId uint       `json:"tenantId"` // 租户ID
+	Info     TenantInfo `json:"info"`     // 租户信息
+	Host     string     `json:"host"`     // 数据库地址
+	Port     int        `json:"port"`     // 数据库端口
+	User     string     `json:"user"`     // 数据库用户名
+	Password string     `json:"password"` // 数据库密码
+	Db       string     `json:"db"`       // 数据库名称
 }
 
 // GetDSN 返回 MySQL 连接字符串
@@ -27,8 +28,9 @@ func (c DatabaseClientInfo) GetDSN() string {
 // MultiTenantContext 多租户上下文
 type MultiTenantContext struct {
 	*gin.Context
-	TenantId uint
-	DB       *gorm.DB
+	TenantId   uint       // 租户Id
+	TenantInfo TenantInfo // 租户信息
+	DB         *gorm.DB
 }
 
 // MultiTenantHandlerFunc 处理函数
@@ -38,7 +40,14 @@ type MultiTenantHandlerFunc func(*MultiTenantContext)
 type TenantDBProvider func() []DatabaseClientInfo
 
 // TenantIdResolver 租户Id解析器
-type TenantIdResolver func(*gin.Context) (uint, error)
+type TenantIdResolver func(*gin.Context) (uint, TenantInfo, error)
+
+// TenantInfo 租户信息
+type TenantInfo struct {
+	Name      string `json:"name"`      // 租户全名
+	ShortName string `json:"shortName"` // 租户简称
+	Logo      string `json:"logo"`      // 租户logo
+}
 
 // =====================================================================================================================
 
