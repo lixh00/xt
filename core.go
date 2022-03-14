@@ -71,6 +71,8 @@ func autoSyncClientHandle() {
 				}
 			}
 		}
+		// 休眠五分钟再来
+		time.Sleep(time.Minute * 5)
 	}
 }
 
