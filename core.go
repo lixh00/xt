@@ -53,6 +53,7 @@ func Init(p TenantDBProvider, i TenantIdResolver, auto ...bool) error {
 			return err
 		}
 	}
+	// 启用了自动同步连接池
 	if len(auto) > 0 {
 		autoSyncClient = auto[0]
 		go autoSyncClientHandle()
@@ -64,6 +65,22 @@ func Init(p TenantDBProvider, i TenantIdResolver, auto ...bool) error {
 func autoSyncClientHandle() {
 	for autoSyncClient {
 		clients := tenantDBProvider()
+		// 更新租户信息
+		for _, c := range clients {
+			// 循环已存在数据，匹配是否需要更新
+			for k, info := range clientInfoMap {
+				if c.TenantId == k {
+					// 判断租户信息是否还一致，只要有一项不一致就给改掉 TODO 后面看看需不需要加锁
+					oldInfo := c.Info
+					if oldInfo.Name == info.Name && oldInfo.ShortName == info.ShortName && oldInfo.Logo == info.Logo && oldInfo.TypeCode == info.TypeCode {
+						break
+					}
+					clientInfoMap[k] = info
+					break
+				}
+			}
+		}
+		// TODO 后面想办法优化一下，看看怎么去匹配数据库连接账号密码等信息是否变动
 		if len(clients) != len(clientMap) {
 			for _, c := range clients {
 				if err := Add(c); err != nil {
