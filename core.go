@@ -5,9 +5,6 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"io"
-	"log"
-	"os"
 	"sync"
 	"time"
 )
@@ -21,18 +18,18 @@ var (
 	autoSyncClient   bool                // 是否自动同步连接配置
 	tenantDBProvider TenantDBProvider    // 租户数据库提供者
 	tenantIdResolver TenantIdResolver    // 租户ID解析器
-	logs             io.Writer           // 日志输出
+	logs             logger.Interface    // 日志输出
 )
 
 func init() {
 	clientMap = make(map[uint]*gorm.DB)
 	clientInfoMap = make(map[uint]TenantInfo)
 	syncModels = make([]interface{}, 0)
-	logs = os.Stdout
+	logs = logger.Default
 }
 
 // SetLogger 设置日志输出工具
-func SetLogger(out io.Writer) {
+func SetLogger(out logger.Interface) {
 	logs = out
 }
 
@@ -102,16 +99,7 @@ func Add(tdb DatabaseClientInfo) error {
 		return nil
 	}
 	// 创建数据库连接
-	gl := logger.New(
-		log.New(logs, "", log.LstdFlags),
-		logger.Config{
-			SlowThreshold:             time.Second, // Slow SQL threshold
-			IgnoreRecordNotFoundError: false,       // 忽略没找到结果的错误
-			LogLevel:                  logger.Info, // Log level
-			Colorful:                  false,       // Disable color
-		},
-	)
-	engine, err := gorm.Open(mysql.Open(tdb.GetDSN()), &gorm.Config{Logger: gl})
+	engine, err := gorm.Open(mysql.Open(tdb.GetDSN()), &gorm.Config{Logger: logs})
 	if err != nil {
 		return err
 	}
