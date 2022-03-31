@@ -35,3 +35,11 @@ func getTenantId(ctx *gin.Context) (id uint, info TenantInfo, err error) {
 	}
 	return p.TenantId, clientInfoMap[p.TenantId], nil
 }
+
+// GetAllTenantInfo 获取所有租户信息
+func GetAllTenantInfo() (datas []TenantInfo) {
+	for _, v := range clientInfoMap {
+		datas = append(datas, v)
+	}
+	return
+}

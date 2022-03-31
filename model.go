@@ -54,8 +54,8 @@ type TenantInfo struct {
 
 // Header里面的租户信息
 type tenantInfo struct {
-	UserId   uint `header:"userId"`                      // 用户ID
-	TenantId uint `header:"tenantId" binding:"required"` // 租户Id
+	UserId   string `header:"userId"`                      // 用户ID
+	TenantId uint   `header:"tenantId" binding:"required"` // 租户Id
 }
 
 // 返回数据包装
