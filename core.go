@@ -10,15 +10,18 @@ import (
 )
 
 var (
-	clientMap        map[uint]*gorm.DB   // 存储所有的数据库连接
-	clientInfoMap    map[uint]TenantInfo // 租户信息
-	clientMapLock    sync.Mutex          // 一把锁
-	syncModels       []interface{}       // 同步的模型
-	syncModelsLock   sync.Mutex          // 一把锁
-	autoSyncClient   bool                // 是否自动同步连接配置
-	tenantDBProvider TenantDBProvider    // 租户数据库提供者
-	tenantIdResolver TenantIdResolver    // 租户ID解析器
-	logs             logger.Interface    // 日志输出
+	clientMap         map[uint]*gorm.DB   // 存储所有的数据库连接
+	clientInfoMap     map[uint]TenantInfo // 租户信息
+	clientMapLock     sync.Mutex          // 一把锁
+	syncModels        []interface{}       // 同步的模型
+	syncModelsLock    sync.Mutex          // 一把锁
+	autoSyncClient    bool                // 是否自动同步连接配置
+	syncModelsAsync   bool                // 是否异步执行同步模型 TODO 未来再想怎么用
+	syncModelsDisable bool                // 是否禁用同步模型
+	tenantDBProvider  TenantDBProvider    // 租户数据库提供者
+	tenantIdResolver  TenantIdResolver    // 租户ID解析器
+	logs              logger.Interface    // 日志输出
+
 )
 
 func init() {
@@ -31,6 +34,16 @@ func init() {
 // SetLogger 设置日志输出工具
 func SetLogger(out logger.Interface) {
 	logs = out
+}
+
+// SetSyncModelsAsync 设置同步模型为是否异步执行
+func SetSyncModelsAsync(async bool) {
+	syncModelsAsync = async
+}
+
+// DisableSyncModels 设置同步模型是否禁用
+func DisableSyncModels(disable bool) {
+	syncModelsDisable = disable
 }
 
 // Init 初始化
@@ -107,13 +120,10 @@ func Add(tdb DatabaseClientInfo) error {
 	clientInfoMap[tdb.TenantId] = tdb.Info
 
 	// 同步模型
-	syncModelsLock.Lock()
-	defer syncModelsLock.Unlock()
-	for i := range syncModels {
-		if err = syncModel(engine, syncModels[i]); err != nil {
-			return err
-		}
+	if err = syncModel(engine); err != nil {
+		return err
 	}
+
 	return nil
 }
 
@@ -155,11 +165,17 @@ func AddModels(m ...interface{}) error {
 }
 
 // 同步模型到数据库
-func syncModel(e *gorm.DB, m interface{}) error {
-	if e == nil || m == nil {
+func syncModel(e *gorm.DB) error {
+	// 如果禁用了，跳过执行
+	if syncModelsDisable {
+		return nil
+	}
+	if e == nil || syncModels == nil {
 		return errors.New("engine or model is nil")
 	}
-	if err := e.AutoMigrate(m); err != nil {
+	syncModelsLock.Lock()
+	defer syncModelsLock.Unlock()
+	if err := e.AutoMigrate(syncModels...); err != nil {
 		return err
 	}
 	return nil
