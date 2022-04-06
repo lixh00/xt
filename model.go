@@ -44,6 +44,7 @@ type TenantIdResolver func(*gin.Context) (uint, TenantInfo, error)
 
 // TenantInfo 租户信息
 type TenantInfo struct {
+	Id        uint   `json:"id"`        // 租户ID
 	Name      string `json:"name"`      // 租户全名
 	ShortName string `json:"shortName"` // 租户简称
 	Logo      string `json:"logo"`      // 租户logo
