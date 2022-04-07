@@ -13,7 +13,7 @@ func GinHandler(handler MultiTenantHandlerFunc) gin.HandlerFunc {
 		tid, ti, err := tenantIdResolver(ctx)
 		if err != nil {
 			ctx.JSON(http.StatusForbidden, response{http.StatusForbidden, nil, err.Error()})
-			ctx.Abort()
+			//ctx.Abort()
 			return
 		}
 		mc.TenantId = tid
@@ -22,7 +22,7 @@ func GinHandler(handler MultiTenantHandlerFunc) gin.HandlerFunc {
 			mc.DB = db
 		} else {
 			ctx.JSON(http.StatusForbidden, response{http.StatusForbidden, nil, "租户状态异常"})
-			ctx.Abort()
+			//ctx.Abort()
 			return
 		}
 		handler(mc)
