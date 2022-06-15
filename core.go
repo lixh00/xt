@@ -30,6 +30,7 @@ var (
 func init() {
 	clientMap = make(map[uint]*gorm.DB)
 	clientInfoMap = make(map[uint]TenantInfo)
+	clientDbInfoMap = make(map[uint]DatabaseClientInfo)
 	syncModels = make([]interface{}, 0)
 	autoSyncClientTime = 5 // 默认五分钟同步一次
 	logs = logger.Default
