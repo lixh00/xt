@@ -2,6 +2,7 @@ package xt
 
 import (
 	"errors"
+	"github.com/duke-git/lancet/v2/slice"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -10,17 +11,19 @@ import (
 )
 
 var (
-	clientMap         map[uint]*gorm.DB   // 存储所有的数据库连接
-	clientInfoMap     map[uint]TenantInfo // 租户信息
-	clientMapLock     sync.Mutex          // 一把锁
-	syncModels        []interface{}       // 同步的模型
-	syncModelsLock    sync.Mutex          // 一把锁
-	autoSyncClient    bool                // 是否自动同步连接配置
-	syncModelsAsync   bool                // 是否异步执行同步模型 TODO 未来再想怎么用
-	syncModelsDisable bool                // 是否禁用同步模型
-	tenantDBProvider  TenantDBProvider    // 租户数据库提供者
-	tenantIdResolver  TenantIdResolver    // 租户ID解析器
-	logs              logger.Interface    // 日志输出
+	clientMap          map[uint]*gorm.DB           // 存储所有的数据库连接
+	clientMapLock      sync.Mutex                  // 一把锁
+	clientDbInfoMap    map[uint]DatabaseClientInfo // 存储所有的租户数据库连接信息
+	clientInfoMap      map[uint]TenantInfo         // 租户信息
+	syncModels         []interface{}               // 同步的模型
+	syncModelsLock     sync.Mutex                  // 一把锁
+	autoSyncClient     bool                        // 是否自动同步连接配置
+	autoSyncClientTime int64                       // 自动同步连接配置的时间间隔
+	syncModelsAsync    bool                        // 是否异步执行同步模型 TODO 未来再想怎么用
+	syncModelsDisable  bool                        // 是否禁用同步模型
+	tenantDBProvider   TenantDBProvider            // 租户数据库提供者
+	tenantIdResolver   TenantIdResolver            // 租户ID解析器
+	logs               logger.Interface            // 日志输出
 
 )
 
@@ -28,6 +31,7 @@ func init() {
 	clientMap = make(map[uint]*gorm.DB)
 	clientInfoMap = make(map[uint]TenantInfo)
 	syncModels = make([]interface{}, 0)
+	autoSyncClientTime = 5 // 默认五分钟同步一次
 	logs = logger.Default
 }
 
@@ -39,6 +43,11 @@ func SetLogger(out logger.Interface) {
 // SetSyncModelsAsync 设置同步模型为是否异步执行
 func SetSyncModelsAsync(async bool) {
 	syncModelsAsync = async
+}
+
+// SetSyncClientTime 自动同步连接配置的时间间隔(单位:分钟)
+func SetSyncClientTime(minute int64) {
+	autoSyncClientTime = minute
 }
 
 // DisableSyncModels 设置同步模型是否禁用
@@ -75,6 +84,24 @@ func Init(p TenantDBProvider, i TenantIdResolver, auto ...bool) error {
 func autoSyncClientHandle() {
 	for autoSyncClient {
 		clients := tenantDBProvider()
+		// 先筛选出已经不存在的租户
+		var inIds, newIds []uint
+		for tenantId, _ := range clientInfoMap {
+			inIds = append(inIds, tenantId)
+		}
+		for _, client := range clients {
+			newIds = append(newIds, client.TenantId)
+		}
+		// 算差集，找出已经删除的租户
+		needClearIds := slice.Difference(inIds, newIds)
+		// 清理租户
+		for _, tenantId := range needClearIds {
+			clientMapLock.Lock()
+			delete(clientMap, tenantId)
+			clientMapLock.Unlock()
+			delete(clientInfoMap, tenantId)
+		}
+
 		// 更新租户信息
 		for _, c := range clients {
 			// 循环已存在数据，匹配是否需要更新
@@ -90,16 +117,16 @@ func autoSyncClientHandle() {
 				}
 			}
 		}
-		// TODO 后面想办法优化一下，看看怎么去匹配数据库连接账号密码等信息是否变动
-		if len(clients) != len(clientMap) {
-			for _, c := range clients {
-				if err := Add(c); err != nil {
-					continue
-				}
+
+		// 处理租户连接信息
+		for _, c := range clients {
+			// 新增租户连接
+			if err := Add(c); err != nil {
+				continue
 			}
 		}
 		// 休眠五分钟再来
-		time.Sleep(time.Minute * 5)
+		time.Sleep(time.Minute * time.Duration(autoSyncClientTime))
 	}
 }
 
@@ -107,8 +134,8 @@ func autoSyncClientHandle() {
 func Add(tdb DatabaseClientInfo) error {
 	clientMapLock.Lock()
 	defer clientMapLock.Unlock()
-	// 如果已经存在，则不再添加
-	if _, exist := clientMap[tdb.TenantId]; exist {
+	// 如果已经存在且账号密码无变动，则跳过
+	if data, exist := clientDbInfoMap[tdb.TenantId]; exist && data.User == tdb.User && data.Password == tdb.Password {
 		return nil
 	}
 	// 创建数据库连接
@@ -118,6 +145,7 @@ func Add(tdb DatabaseClientInfo) error {
 	}
 	clientMap[tdb.TenantId] = engine
 	clientInfoMap[tdb.TenantId] = tdb.Info
+	clientDbInfoMap[tdb.TenantId] = tdb
 
 	// 同步模型
 	if err = syncModel(engine); err != nil {
