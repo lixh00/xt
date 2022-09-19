@@ -20,6 +20,7 @@ var (
 	autoSyncClient     bool                        // 是否自动同步连接配置
 	autoSyncClientTime int64                       // 自动同步连接配置的时间间隔
 	syncModelsAsync    bool                        // 是否异步执行同步模型 TODO 未来再想怎么用
+	syncModelsAfter    SyncModelsAfter             // 同步模型后的回调
 	syncModelsDisable  bool                        // 是否禁用同步模型
 	tenantDBProvider   TenantDBProvider            // 租户数据库提供者
 	tenantIdResolver   TenantIdResolver            // 租户ID解析器
@@ -79,6 +80,13 @@ func Init(p TenantDBProvider, i TenantIdResolver, auto ...bool) error {
 		go autoSyncClientHandle()
 	}
 	return nil
+}
+
+//	SetSyncModelsAfter
+//	@description: 设置同步模型后的回调
+//	@param handle
+func SetSyncModelsAfter(handle SyncModelsAfter) {
+	syncModelsAfter = handle
 }
 
 // 自动同步连接配置
@@ -207,5 +215,7 @@ func syncModel(e *gorm.DB) error {
 	if err := e.AutoMigrate(syncModels...); err != nil {
 		return err
 	}
-	return nil
+	// 回调
+	err := syncModelsAfter(e)
+	return err
 }

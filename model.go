@@ -39,6 +39,9 @@ type MultiTenantHandlerFunc func(*MultiTenantContext)
 // TenantDBProvider 租户数据库连接信息提供者
 type TenantDBProvider func() []DatabaseClientInfo
 
+// SyncModelsAfter 同步模型完成之后调用函数
+type SyncModelsAfter func(db *gorm.DB) error
+
 // TenantIdResolver 租户Id解析器
 type TenantIdResolver func(*gin.Context) (uint, TenantInfo, error)
 
