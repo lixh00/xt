@@ -11,27 +11,26 @@ import (
 )
 
 var (
-	clientMap          map[uint]*gorm.DB           // 存储所有的数据库连接
-	clientMapLock      sync.Mutex                  // 一把锁
-	clientDbInfoMap    map[uint]DatabaseClientInfo // 存储所有的租户数据库连接信息
-	clientInfoMap      map[uint]TenantInfo         // 租户信息
-	syncModels         []interface{}               // 同步的模型
-	syncModelsLock     sync.Mutex                  // 一把锁
-	autoSyncClient     bool                        // 是否自动同步连接配置
-	autoSyncClientTime int64                       // 自动同步连接配置的时间间隔
-	syncModelsAsync    bool                        // 是否异步执行同步模型 TODO 未来再想怎么用
-	syncModelsAfter    SyncModelsAfter             // 同步模型后的回调
-	syncModelsDisable  bool                        // 是否禁用同步模型
-	tenantDBProvider   TenantDBProvider            // 租户数据库提供者
-	tenantIdResolver   TenantIdResolver            // 租户ID解析器
-	logs               logger.Interface            // 日志输出
-
+	clientMap          map[string]*gorm.DB           // 存储所有的数据库连接
+	clientMapLock      sync.Mutex                    // 一把锁
+	clientDbInfoMap    map[string]DatabaseClientInfo // 存储所有的租户数据库连接信息
+	clientInfoMap      map[string]TenantInfo         // 租户信息
+	syncModels         []interface{}                 // 同步的模型
+	syncModelsLock     sync.Mutex                    // 一把锁
+	autoSyncClient     bool                          // 是否自动同步连接配置
+	autoSyncClientTime int64                         // 自动同步连接配置的时间间隔
+	syncModelsAsync    bool                          // 是否异步执行同步模型 TODO 未来再想怎么用
+	syncModelsAfter    SyncModelsAfter               // 同步模型后的回调
+	syncModelsDisable  bool                          // 是否禁用同步模型
+	tenantDBProvider   TenantDBProvider              // 租户数据库提供者
+	tenantIdResolver   TenantIdResolver              // 租户ID解析器
+	logs               logger.Interface              // 日志输出
 )
 
 func init() {
-	clientMap = make(map[uint]*gorm.DB)
-	clientInfoMap = make(map[uint]TenantInfo)
-	clientDbInfoMap = make(map[uint]DatabaseClientInfo)
+	clientMap = make(map[string]*gorm.DB)
+	clientInfoMap = make(map[string]TenantInfo)
+	clientDbInfoMap = make(map[string]DatabaseClientInfo)
 	syncModels = make([]interface{}, 0)
 	autoSyncClientTime = 5 // 默认五分钟同步一次
 	logs = logger.Default
@@ -94,7 +93,7 @@ func autoSyncClientHandle() {
 	for autoSyncClient {
 		clients := tenantDBProvider()
 		// 先筛选出已经不存在的租户
-		var inIds, newIds []uint
+		var inIds, newIds []string
 		for tenantId, _ := range clientInfoMap {
 			inIds = append(inIds, tenantId)
 		}
@@ -165,7 +164,7 @@ func Add(tdb DatabaseClientInfo) error {
 }
 
 // GetByTenantId 根据租户Id获取数据库连接对象
-func GetByTenantId(tenantId uint) (*gorm.DB, error) {
+func GetByTenantId(tenantId string) (*gorm.DB, error) {
 	clientMapLock.Lock()
 	defer clientMapLock.Unlock()
 	if client, exist := clientMap[tenantId]; exist {

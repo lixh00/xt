@@ -30,7 +30,7 @@ func GinHandler(handler MultiTenantHandlerFunc) gin.HandlerFunc {
 }
 
 // 获取租户ID
-func getTenantId(ctx *gin.Context) (id uint, info TenantInfo, err error) {
+func getTenantId(ctx *gin.Context) (id string, info TenantInfo, err error) {
 	var p tenantInfo
 	if err = ctx.ShouldBindHeader(&p); err != nil {
 		return

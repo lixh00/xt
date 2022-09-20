@@ -28,7 +28,7 @@ func (UserInfo) TableName() string {
 func getDBS() []DatabaseClientInfo {
 	var dbs []DatabaseClientInfo
 	dbs = append(dbs, DatabaseClientInfo{
-		TenantId: 1,
+		TenantId: "1",
 		Info: TenantInfo{
 			Name:      "李寻欢测试",
 			ShortName: "测试",
@@ -55,7 +55,7 @@ func TestSyncModels(t *testing.T) {
 	if err != nil {
 		return
 	}
-	_, err = GetByTenantId(1)
+	_, err = GetByTenantId("1")
 	if err != nil {
 		return
 	}

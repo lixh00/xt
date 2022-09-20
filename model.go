@@ -8,7 +8,7 @@ import (
 
 // DatabaseClientInfo 数据库连接配置
 type DatabaseClientInfo struct {
-	TenantId uint       `json:"tenantId"` // 租户ID
+	TenantId string     `json:"tenantId"` // 租户ID
 	Info     TenantInfo `json:"info"`     // 租户信息
 	Host     string     `json:"host"`     // 数据库地址
 	Port     int        `json:"port"`     // 数据库端口
@@ -28,9 +28,9 @@ func (c DatabaseClientInfo) GetDSN() string {
 // MultiTenantContext 多租户上下文
 type MultiTenantContext struct {
 	*gin.Context
-	TenantId   uint       // 租户Id
+	TenantId   string     // 租户Id
 	TenantInfo TenantInfo // 租户信息
-	DB         *gorm.DB
+	DB         *gorm.DB   // 数据库连接
 }
 
 // MultiTenantHandlerFunc 处理函数
@@ -43,11 +43,11 @@ type TenantDBProvider func() []DatabaseClientInfo
 type SyncModelsAfter func(db *gorm.DB) error
 
 // TenantIdResolver 租户Id解析器
-type TenantIdResolver func(*gin.Context) (uint, TenantInfo, error)
+type TenantIdResolver func(*gin.Context) (string, TenantInfo, error)
 
 // TenantInfo 租户信息
 type TenantInfo struct {
-	Id        uint   `json:"id"`        // 租户ID
+	Id        string `json:"id"`        // 租户ID
 	Name      string `json:"name"`      // 租户全名
 	ShortName string `json:"shortName"` // 租户简称
 	Logo      string `json:"logo"`      // 租户logo
@@ -59,7 +59,7 @@ type TenantInfo struct {
 // Header里面的租户信息
 type tenantInfo struct {
 	UserId   string `header:"userId"`                      // 用户ID
-	TenantId uint   `header:"tenantId" binding:"required"` // 租户Id
+	TenantId string `header:"tenantId" binding:"required"` // 租户Id
 }
 
 // 返回数据包装
