@@ -168,7 +168,7 @@ func Add(tdb DatabaseClientInfo) error {
 	}
 
 	// 同步模型
-	if err = syncModel(engine); err != nil {
+	if err = syncModel(engine, tdb.TenantId); err != nil {
 		return err
 	}
 
@@ -218,7 +218,7 @@ func AddModels(m ...interface{}) error {
 }
 
 // 同步模型到数据库
-func syncModel(e *gorm.DB) error {
+func syncModel(e *gorm.DB, tenantId string) error {
 	// 如果禁用了，跳过执行
 	if syncModelsDisable {
 		return nil
@@ -237,7 +237,7 @@ func syncModel(e *gorm.DB) error {
 		return err
 	}
 	// 回调
-	err := syncModelsAfter(tx)
+	err := syncModelsAfter(tx, tenantId)
 	if err != nil {
 		tx.Rollback()
 		return err
