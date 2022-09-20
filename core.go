@@ -166,14 +166,16 @@ func Add(tdb DatabaseClientInfo) error {
 	if err != nil {
 		return err
 	}
-	clientMap[tdb.TenantId] = engine
-	clientInfoMap[tdb.TenantId] = tdb.Info
-	clientDbInfoMap[tdb.TenantId] = tdb
 
 	// 同步模型
 	if err = syncModel(engine); err != nil {
 		return err
 	}
+
+	// 操作成功了，保存连接信息
+	clientMap[tdb.TenantId] = engine
+	clientInfoMap[tdb.TenantId] = tdb.Info
+	clientDbInfoMap[tdb.TenantId] = tdb
 
 	return nil
 }
@@ -226,10 +228,21 @@ func syncModel(e *gorm.DB) error {
 	}
 	syncModelsLock.Lock()
 	defer syncModelsLock.Unlock()
-	if err := e.AutoMigrate(syncModels...); err != nil {
+
+	// 开启事务
+	tx := e.Begin()
+	// 同步表结构
+	if err := tx.AutoMigrate(syncModels...); err != nil {
+		tx.Rollback()
 		return err
 	}
 	// 回调
-	err := syncModelsAfter(e)
+	err := syncModelsAfter(tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	// 提交事务
+	tx.Commit()
 	return err
 }
