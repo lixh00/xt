@@ -11,20 +11,21 @@ import (
 )
 
 var (
-	clientMap          map[string]*gorm.DB           // 存储所有的数据库连接
-	clientMapLock      sync.Mutex                    // 一把锁
-	clientDbInfoMap    map[string]DatabaseClientInfo // 存储所有的租户数据库连接信息
-	clientInfoMap      map[string]TenantInfo         // 租户信息
-	syncModels         []interface{}                 // 同步的模型
-	syncModelsLock     sync.Mutex                    // 一把锁
-	autoSyncClient     bool                          // 是否自动同步连接配置
-	autoSyncClientTime int64                         // 自动同步连接配置的时间间隔
-	syncModelsAsync    bool                          // 是否异步执行同步模型 TODO 未来再想怎么用
-	syncModelsAfter    SyncModelsAfter               // 同步模型后的回调
-	syncModelsDisable  bool                          // 是否禁用同步模型
-	tenantDBProvider   TenantDBProvider              // 租户数据库提供者
-	tenantIdResolver   TenantIdResolver              // 租户ID解析器
-	logs               logger.Interface              // 日志输出
+	clientMap                                map[string]*gorm.DB           // 存储所有的数据库连接
+	clientMapLock                            sync.Mutex                    // 一把锁
+	clientDbInfoMap                          map[string]DatabaseClientInfo // 存储所有的租户数据库连接信息
+	clientInfoMap                            map[string]TenantInfo         // 租户信息
+	syncModels                               []interface{}                 // 同步的模型
+	syncModelsLock                           sync.Mutex                    // 一把锁
+	autoSyncClient                           bool                          // 是否自动同步连接配置
+	autoSyncClientTime                       int64                         // 自动同步连接配置的时间间隔
+	syncModelsAsync                          bool                          // 是否异步执行同步模型 TODO 未来再想怎么用
+	syncModelsAfter                          SyncModelsAfter               // 同步模型后的回调
+	syncModelsDisable                        bool                          // 是否禁用同步模型
+	tenantDBProvider                         TenantDBProvider              // 租户数据库提供者
+	tenantIdResolver                         TenantIdResolver              // 租户ID解析器
+	logs                                     logger.Interface              // 日志输出
+	disableForeignKeyConstraintWhenMigrating bool                          // 禁用自动创建外键约束
 )
 
 func init() {
@@ -88,6 +89,13 @@ func SetSyncModelsAfter(handle SyncModelsAfter) {
 	syncModelsAfter = handle
 }
 
+//	SetDisableForeignKeyConstraintWhenMigrating
+//	@description: 设置是否禁用自动创建外键约束
+//	@param flag
+func SetDisableForeignKeyConstraintWhenMigrating(flag bool) {
+	disableForeignKeyConstraintWhenMigrating = flag
+}
+
 // 自动同步连接配置
 func autoSyncClientHandle() {
 	for autoSyncClient {
@@ -146,8 +154,15 @@ func Add(tdb DatabaseClientInfo) error {
 	if data, exist := clientDbInfoMap[tdb.TenantId]; exist && data.User == tdb.User && data.Password == tdb.Password {
 		return nil
 	}
+
+	// gorm配置
+	conf := gorm.Config{
+		Logger:                                   logs,
+		DisableForeignKeyConstraintWhenMigrating: disableForeignKeyConstraintWhenMigrating,
+	}
+
 	// 创建数据库连接
-	engine, err := gorm.Open(mysql.Open(tdb.GetDSN()), &gorm.Config{Logger: logs})
+	engine, err := gorm.Open(mysql.Open(tdb.GetDSN()), &conf)
 	if err != nil {
 		return err
 	}
