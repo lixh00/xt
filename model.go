@@ -47,11 +47,12 @@ type TenantIdResolver func(*gin.Context) (string, TenantInfo, error)
 
 // TenantInfo 租户信息
 type TenantInfo struct {
-	Id        string `json:"id"`        // 租户ID
-	Name      string `json:"name"`      // 租户全名
-	ShortName string `json:"shortName"` // 租户简称
-	Logo      string `json:"logo"`      // 租户logo
-	TypeCode  string `json:"type"`      // 租户类型
+	Id        string      `json:"id"`        // 租户ID
+	Name      string      `json:"name"`      // 租户全名
+	ShortName string      `json:"shortName"` // 租户简称
+	Logo      string      `json:"logo"`      // 租户logo
+	TypeCode  string      `json:"type"`      // 租户类型
+	Extended  interface{} `json:"extended"`  // 自行维护的扩展信息
 }
 
 // =====================================================================================================================
