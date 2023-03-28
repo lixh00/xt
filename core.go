@@ -2,7 +2,7 @@ package xt
 
 import (
 	"errors"
-	"github.com/duke-git/lancet/v2/slice"
+	"github.com/lixh00/xt/utils"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -109,7 +109,7 @@ func autoSyncClientHandle() {
 			newIds = append(newIds, client.TenantId)
 		}
 		// 算差集，找出已经删除的租户
-		needClearIds := slice.Difference(inIds, newIds)
+		needClearIds := utils.Difference(inIds, newIds)
 		// 清理租户
 		for _, tenantId := range needClearIds {
 			clientMapLock.Lock()

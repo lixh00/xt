@@ -1,7 +1,7 @@
 package xt
 
 import (
-	"github.com/duke-git/lancet/v2/slice"
+	"github.com/lixh00/xt/utils"
 	"testing"
 )
 
@@ -66,6 +66,6 @@ func TestSyncModels(t *testing.T) {
 func TestSyncTenantInfo(t *testing.T) {
 	inIds := []uint{1, 2, 3}
 	newIds := []uint{1, 2, 4}
-	needClearIds := slice.Difference(inIds, newIds)
+	needClearIds := utils.Difference(inIds, newIds)
 	t.Logf("需要清理的Id: %v", needClearIds)
 }
