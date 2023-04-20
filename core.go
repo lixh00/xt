@@ -20,6 +20,7 @@ var (
 	autoSyncClient                           bool                          // 是否自动同步连接配置
 	autoSyncClientTime                       int64                         // 自动同步连接配置的时间间隔
 	syncModelsAsync                          bool                          // 是否异步执行同步模型 TODO 未来再想怎么用
+	syncModelsBefore                         SyncModelsBefore              // 同步模型前的回调
 	syncModelsAfter                          SyncModelsAfter               // 同步模型后的回调
 	syncModelsDisable                        bool                          // 是否禁用同步模型
 	tenantDBProvider                         TenantDBProvider              // 租户数据库提供者
@@ -87,6 +88,13 @@ func Init(p TenantDBProvider, i TenantIdResolver, auto ...bool) error {
 //	@param handle
 func SetSyncModelsAfter(handle SyncModelsAfter) {
 	syncModelsAfter = handle
+}
+
+//	SetSyncModelsBefore
+//	@description: 设置同步模型前的回调
+//	@param handle
+func SetSyncModelsBefore(handle SyncModelsBefore) {
+	syncModelsBefore = handle
 }
 
 //	SetDisableForeignKeyConstraintWhenMigrating
@@ -223,6 +231,12 @@ func syncModel(e *gorm.DB, tenantId string) error {
 	if syncModelsDisable {
 		return nil
 	}
+
+	// 执行前回调
+	if err := syncModelsBefore(e, tenantId); err != nil {
+		return err
+	}
+
 	if e == nil || syncModels == nil {
 		return errors.New("engine or model is nil")
 	}
@@ -237,12 +251,11 @@ func syncModel(e *gorm.DB, tenantId string) error {
 		return err
 	}
 	// 回调
-	err := syncModelsAfter(tx, tenantId)
-	if err != nil {
+	if err := syncModelsAfter(tx, tenantId); err != nil {
 		tx.Rollback()
 		return err
 	}
 	// 提交事务
 	tx.Commit()
-	return err
+	return nil
 }

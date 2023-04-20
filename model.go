@@ -42,6 +42,9 @@ type TenantDBProvider func() []DatabaseClientInfo
 // SyncModelsAfter 同步模型完成之后调用函数
 type SyncModelsAfter func(db *gorm.DB, tenantId string) error
 
+// SyncModelsBefore 同步模型之前调用函数
+type SyncModelsBefore func(db *gorm.DB, tenantId string) error
+
 // TenantIdResolver 租户Id解析器
 type TenantIdResolver func(*gin.Context) (string, TenantInfo, error)
 
