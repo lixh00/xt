@@ -233,8 +233,10 @@ func syncModel(e *gorm.DB, tenantId string) error {
 	}
 
 	// 执行前回调
-	if err := syncModelsBefore(e, tenantId); err != nil {
-		return err
+	if syncModelsBefore != nil {
+		if err := syncModelsBefore(e, tenantId); err != nil {
+			return err
+		}
 	}
 
 	if e == nil || syncModels == nil {
@@ -251,10 +253,13 @@ func syncModel(e *gorm.DB, tenantId string) error {
 		return err
 	}
 	// 回调
-	if err := syncModelsAfter(tx, tenantId); err != nil {
-		tx.Rollback()
-		return err
+	if syncModelsAfter != nil {
+		if err := syncModelsAfter(tx, tenantId); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
+
 	// 提交事务
 	tx.Commit()
 	return nil
