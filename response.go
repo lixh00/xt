@@ -62,14 +62,17 @@ func (r resp) Result(code int, data any, msg, err string) {
 		ErrMsg: err,
 	}
 
-	if os.Getenv("SHOW_RESP_DATA") == "true" {
-		bs, er := json.Marshal(respData)
-		if er != nil {
-			log.Printf("返回数据序列化失败: %s", er.Error())
-		} else {
-			log.Printf("返回数据: %s", string(bs))
+	go func() {
+		// 异步处理一下要不要打印返回数据
+		if os.Getenv("SHOW_RESP_DATA") == "true" {
+			bs, er := json.Marshal(respData)
+			if er != nil {
+				log.Printf("返回数据序列化失败: %s", er.Error())
+			} else {
+				log.Printf("返回数据: %s", string(bs))
+			}
 		}
-	}
+	}()
 
 	r.ctx.JSON(code, respData)
 }

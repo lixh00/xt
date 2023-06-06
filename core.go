@@ -19,7 +19,6 @@ var (
 	syncModelsLock                           sync.Mutex                    // 一把锁
 	autoSyncClient                           bool                          // 是否自动同步连接配置
 	autoSyncClientTime                       int64                         // 自动同步连接配置的时间间隔
-	syncModelsAsync                          bool                          // 是否异步执行同步模型 TODO 未来再想怎么用
 	syncModelsBefore                         SyncModelsBefore              // 同步模型前的回调
 	syncModelsAfter                          SyncModelsAfter               // 同步模型后的回调
 	syncModelsDisable                        bool                          // 是否禁用同步模型
@@ -41,11 +40,6 @@ func init() {
 // SetLogger 设置日志输出工具
 func SetLogger(out logger.Interface) {
 	logs = out
-}
-
-// SetSyncModelsAsync 设置同步模型为是否异步执行
-func SetSyncModelsAsync(async bool) {
-	syncModelsAsync = async
 }
 
 // SetSyncClientTime 自动同步连接配置的时间间隔(单位:分钟)
