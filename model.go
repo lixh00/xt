@@ -31,6 +31,7 @@ type MultiTenantContext struct {
 	TenantId   string     // 租户Id
 	TenantInfo TenantInfo // 租户信息
 	DB         *gorm.DB   // 数据库连接
+	Reply      Response   // 返回值
 }
 
 // MultiTenantHandlerFunc 处理函数

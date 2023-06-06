@@ -2,9 +2,27 @@ package xt
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
+	"os"
 )
+
+//	Response
+//	@description: 接口返回值
+type Response interface {
+	Result(code int, data any, msg, err string)           // 手动组装返回结果
+	Ok()                                                  // 返回无数据的成功
+	OkWithMessage(message string)                         // 返回自定义成功的消息
+	OkWithData(data any)                                  // 自定义内容的成功返回
+	OkDetailed(data any, message string)                  // 自定义消息和内容的成功返回
+	Fail()                                                // 返回默认失败
+	FailWithMessage(message string)                       // 返回默认状态码自定义消息的失败
+	FailWithError(msg string, err error)                  // 返回自定义消息和内容的失败
+	FailWithErrorAndCode(msg string, err error, code int) // 返回自定义消息和内容以及错误代码的失败
+	FailWithMessageAndCode(message string, code int)      // 返回自定义消息和状态码的失败
+}
 
 // 返回数据包装
 type responseData struct {
@@ -25,7 +43,7 @@ const (
 )
 
 // R 工厂函数
-func R(ctx *MultiTenantContext) *resp {
+func R(ctx *MultiTenantContext) Response {
 	x := ctx.Context
 	x.Header("Tenant-Name", base64.StdEncoding.EncodeToString([]byte(ctx.TenantInfo.Name)))            // 租户名称
 	x.Header("Tenant-Short-Name", base64.StdEncoding.EncodeToString([]byte(ctx.TenantInfo.ShortName))) // 租户简称
@@ -37,12 +55,23 @@ func R(ctx *MultiTenantContext) *resp {
 
 // Result 手动组装返回结果
 func (r resp) Result(code int, data any, msg, err string) {
-	r.ctx.JSON(code, responseData{
-		code,
-		data,
-		msg,
-		err,
-	})
+	respData := responseData{
+		Code:   code,
+		Data:   data,
+		Msg:    msg,
+		ErrMsg: err,
+	}
+
+	if os.Getenv("SHOW_RESP_DATA") == "true" {
+		bs, er := json.Marshal(respData)
+		if er != nil {
+			log.Printf("返回数据序列化失败: %s", er.Error())
+		} else {
+			log.Printf("返回数据: %s", string(bs))
+		}
+	}
+
+	r.ctx.JSON(code, respData)
 }
 
 // Ok 返回无数据的成功

@@ -25,6 +25,7 @@ func GinHandler(handler MultiTenantHandlerFunc) gin.HandlerFunc {
 			//ctx.Abort()
 			return
 		}
+		mc.Reply = R(mc)
 		handler(mc)
 	}
 }
