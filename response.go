@@ -45,7 +45,7 @@ const (
 // R 工厂函数
 func R(ctx *MultiTenantContext) Response {
 	x := ctx.Context
-	x.Header("Tenant-Id", base64.StdEncoding.EncodeToString([]byte(ctx.TenantInfo.Id)))                // 租户Id
+	x.Header("Tenant-Id", ctx.TenantInfo.Id)                                                           // 租户Id
 	x.Header("Tenant-Name", base64.StdEncoding.EncodeToString([]byte(ctx.TenantInfo.Name)))            // 租户名称
 	x.Header("Tenant-Short-Name", base64.StdEncoding.EncodeToString([]byte(ctx.TenantInfo.ShortName))) // 租户简称
 	x.Header("Tenant-Logo", base64.StdEncoding.EncodeToString([]byte(ctx.TenantInfo.Logo)))            // 租户logo
