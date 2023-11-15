@@ -45,12 +45,23 @@ const (
 // R 工厂函数
 func R(ctx *MultiTenantContext) Response {
 	x := ctx.Context
+	x.Header("Tenant-Id", base64.StdEncoding.EncodeToString([]byte(ctx.TenantInfo.Id)))                // 租户Id
 	x.Header("Tenant-Name", base64.StdEncoding.EncodeToString([]byte(ctx.TenantInfo.Name)))            // 租户名称
 	x.Header("Tenant-Short-Name", base64.StdEncoding.EncodeToString([]byte(ctx.TenantInfo.ShortName))) // 租户简称
 	x.Header("Tenant-Logo", base64.StdEncoding.EncodeToString([]byte(ctx.TenantInfo.Logo)))            // 租户logo
 	x.Header("Tenant-Type-Code", ctx.TenantInfo.TypeCode)                                              // 租户类型代码
 
 	return &resp{ctx: x}
+}
+
+//	SetHeader
+//	@description: 设置响应头
+//	@receiver r
+//	@param k
+//	@param v
+func (r *resp) SetHeader(k, v string) *resp {
+	r.ctx.Header(k, v)
+	return r
 }
 
 // Result 手动组装返回结果
