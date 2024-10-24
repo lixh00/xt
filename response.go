@@ -4,13 +4,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/lixh00/xt/utils"
 	"log"
 	"net/http"
 	"os"
 )
 
-//	Response
-//	@description: 接口返回值
+// Response
+// @description: 接口返回值
 type Response interface {
 	Result(code int, data any, msg, err string)           // 手动组装返回结果
 	Ok()                                                  // 返回无数据的成功
@@ -50,15 +51,17 @@ func R(ctx *MultiTenantContext) Response {
 	x.Header("Tenant-Short-Name", base64.StdEncoding.EncodeToString([]byte(ctx.TenantInfo.ShortName))) // 租户简称
 	x.Header("Tenant-Logo", base64.StdEncoding.EncodeToString([]byte(ctx.TenantInfo.Logo)))            // 租户logo
 	x.Header("Tenant-Type-Code", ctx.TenantInfo.TypeCode)                                              // 租户类型代码
-
+	if ctx.TenantInfo.Extended != nil {
+		x.Header("Tenant-Version", utils.Get(ctx.TenantInfo.Extended, "version").ToString()) // 租户版本
+	}
 	return &resp{ctx: x}
 }
 
-//	SetHeader
-//	@description: 设置响应头
-//	@receiver r
-//	@param k
-//	@param v
+// SetHeader
+// @description: 设置响应头
+// @receiver r
+// @param k
+// @param v
 func (r *resp) SetHeader(k, v string) *resp {
 	r.ctx.Header(k, v)
 	return r

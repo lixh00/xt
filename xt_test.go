@@ -49,7 +49,7 @@ func TestSyncModels(t *testing.T) {
 	_ = AddModel(UserInfo{})
 
 	//DisableSyncModels(true)
-	SetSyncModelsAsync(true)
+	//SetSyncModelsAsync(true)
 
 	err := Init(getDBS, nil, true)
 	if err != nil {
