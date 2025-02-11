@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"time"
 )
 
 // DatabaseClientInfo 数据库连接配置
@@ -72,4 +73,13 @@ type response struct {
 	Code int         `json:"code"`
 	Data interface{} `json:"data"`
 	Msg  string      `json:"message"`
+}
+
+// =====================================================================================================================
+
+type redisCacheConfig struct {
+	DSN      string        // redis连接地址
+	Password string        // redis密码
+	DB       int           // redis数据库
+	TTL      time.Duration // redis缓存时间
 }
