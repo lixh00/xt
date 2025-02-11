@@ -2,7 +2,12 @@ package xt
 
 import (
 	"errors"
+	"github.com/lixh00/gorm-cache/cache"
+	"github.com/lixh00/gorm-cache/config"
+	"github.com/lixh00/gorm-cache/storage"
+	cacheUtil "github.com/lixh00/gorm-cache/util"
 	"github.com/lixh00/xt/utils"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -26,6 +31,7 @@ var (
 	tenantIdResolver                         TenantIdResolver              // 租户ID解析器
 	logs                                     logger.Interface              // 日志输出
 	disableForeignKeyConstraintWhenMigrating bool                          // 禁用自动创建外键约束
+	cacheConfig                              redisCacheConfig              // Redis缓存连接配置
 )
 
 func init() {
@@ -50,6 +56,20 @@ func SetSyncClientTime(minute int64) {
 // DisableSyncModels 设置同步模型是否禁用
 func DisableSyncModels(disable bool) {
 	syncModelsDisable = disable
+}
+
+// SetRedisCacheConfig
+// @description: 设置Redis缓存连接配置
+// @param dsn
+// @param password
+// @param db
+func SetRedisCacheConfig(dsn, password string, db int, ttl time.Duration) {
+	cacheConfig = redisCacheConfig{
+		DSN:      dsn,
+		Password: password,
+		DB:       db,
+		TTL:      ttl,
+	}
 }
 
 // Init 初始化
@@ -77,23 +97,23 @@ func Init(p TenantDBProvider, i TenantIdResolver, auto ...bool) error {
 	return nil
 }
 
-//	SetSyncModelsAfter
-//	@description: 设置同步模型后的回调
-//	@param handle
+// SetSyncModelsAfter
+// @description: 设置同步模型后的回调
+// @param handle
 func SetSyncModelsAfter(handle SyncModelsAfter) {
 	syncModelsAfter = handle
 }
 
-//	SetSyncModelsBefore
-//	@description: 设置同步模型前的回调
-//	@param handle
+// SetSyncModelsBefore
+// @description: 设置同步模型前的回调
+// @param handle
 func SetSyncModelsBefore(handle SyncModelsBefore) {
 	syncModelsBefore = handle
 }
 
-//	SetDisableForeignKeyConstraintWhenMigrating
-//	@description: 设置是否禁用自动创建外键约束
-//	@param flag
+// SetDisableForeignKeyConstraintWhenMigrating
+// @description: 设置是否禁用自动创建外键约束
+// @param flag
 func SetDisableForeignKeyConstraintWhenMigrating(flag bool) {
 	disableForeignKeyConstraintWhenMigrating = flag
 }
@@ -169,6 +189,29 @@ func Add(tdb DatabaseClientInfo) error {
 		return err
 	}
 
+	// 如果设置了redis缓存，添加一下插件
+	if cacheConfig.DSN != "" {
+		conn := redis.NewClient(&redis.Options{
+			Addr:     cacheConfig.DSN,
+			Password: cacheConfig.Password,
+			DB:       cacheConfig.DB,
+		})
+
+		// 设置缓存实例ID
+		cacheUtil.SetInstanceId(tdb.TenantId)
+		// 创建缓存插件
+		cachePlugin, _ := cache.NewGorm2Cache(&config.CacheConfig{
+			CacheLevel:           config.CacheLevelAll,
+			CacheStorage:         storage.NewRedis(&storage.RedisStoreConfig{Client: conn}),
+			InvalidateWhenUpdate: true,                                      // when you create/update/delete objects, invalidate cache
+			CacheTTL:             int64(cacheConfig.TTL / time.Millisecond), // 缓存有效期，除以毫秒是因为gorm-cache的时间单位是毫秒
+			CacheMaxItemCnt:      10000,                                     // 如果单次检索的对象长度超过此数字，则不缓存。
+		})
+		if err = engine.Use(cachePlugin); err != nil {
+			return err
+		}
+	}
+
 	// 同步模型
 	if err = syncModel(engine, tdb.TenantId); err != nil {
 		return err
@@ -189,7 +232,7 @@ func GetByTenantId(tenantId string) (*gorm.DB, error) {
 	if client, exist := clientMap[tenantId]; exist {
 		return client, nil
 	}
-	return nil, errors.New("not found")
+	return nil, errors.New("database client not found")
 }
 
 // AddModel 添加一个需要同步的模型
