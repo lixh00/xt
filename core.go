@@ -63,12 +63,13 @@ func DisableSyncModels(disable bool) {
 // @param dsn
 // @param password
 // @param db
-func SetRedisCacheConfig(dsn, password string, db int, ttl time.Duration) {
+func SetRedisCacheConfig(dsn, password string, db int, ttl time.Duration, cacheMaxItemCnt int64) {
 	cacheConfig = redisCacheConfig{
-		DSN:      dsn,
-		Password: password,
-		DB:       db,
-		TTL:      ttl,
+		DSN:             dsn,
+		Password:        password,
+		DB:              db,
+		TTL:             ttl,
+		CacheMaxItemCnt: cacheMaxItemCnt,
 	}
 }
 
