@@ -78,8 +78,9 @@ type response struct {
 // =====================================================================================================================
 
 type redisCacheConfig struct {
-	DSN      string        // redis连接地址
-	Password string        // redis密码
-	DB       int           // redis数据库
-	TTL      time.Duration // redis缓存时间
+	DSN             string        // redis连接地址
+	Password        string        // redis密码
+	DB              int           // redis数据库
+	TTL             time.Duration // redis缓存时间
+	CacheMaxItemCnt int64         // redis缓存最大数量，如果单次检索的对象长度超过此数字，则不缓存。
 }

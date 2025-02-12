@@ -203,9 +203,9 @@ func Add(tdb DatabaseClientInfo) error {
 		cachePlugin, _ := cache.NewGorm2Cache(&config.CacheConfig{
 			CacheLevel:           config.CacheLevelAll,
 			CacheStorage:         storage.NewRedis(&storage.RedisStoreConfig{Client: conn}),
-			InvalidateWhenUpdate: true,                                      // when you create/update/delete objects, invalidate cache
-			CacheTTL:             int64(cacheConfig.TTL / time.Millisecond), // 缓存有效期，除以毫秒是因为gorm-cache的时间单位是毫秒
-			CacheMaxItemCnt:      10000,                                     // 如果单次检索的对象长度超过此数字，则不缓存。
+			InvalidateWhenUpdate: true,                        // when you create/update/delete objects, invalidate cache
+			CacheTTL:             cacheConfig.TTL,             // 缓存有效期，除以毫秒是因为gorm-cache的时间单位是毫秒
+			CacheMaxItemCnt:      cacheConfig.CacheMaxItemCnt, // 如果单次检索的对象长度超过此数字，则不缓存。
 		})
 		if err = engine.Use(cachePlugin); err != nil {
 			return err
