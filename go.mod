@@ -50,4 +50,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/lixh00/gorm-cache v0.0.1 => E:\Projects\Golang\gorm-cache
+//replace github.com/lixh00/gorm-cache v0.0.1 => E:\Projects\Golang\gorm-cache
