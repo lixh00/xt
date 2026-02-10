@@ -2,6 +2,9 @@ package xt
 
 import (
 	"errors"
+	"sync"
+	"time"
+
 	"github.com/lixh00/gorm-cache/cache"
 	"github.com/lixh00/gorm-cache/config"
 	"github.com/lixh00/gorm-cache/storage"
@@ -11,13 +14,11 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"sync"
-	"time"
 )
 
 var (
 	clientMap                                map[string]*gorm.DB           // 存储所有的数据库连接
-	clientMapLock                            sync.Mutex                    // 一把锁
+	clientMapLock                            sync.RWMutex                  // 读写锁，保护 clientMap、clientInfoMap、clientDbInfoMap
 	clientDbInfoMap                          map[string]DatabaseClientInfo // 存储所有的租户数据库连接信息
 	clientInfoMap                            map[string]TenantInfo         // 租户信息
 	syncModels                               []interface{}                 // 同步的模型
@@ -125,36 +126,39 @@ func autoSyncClientHandle() {
 		clients := tenantDBProvider()
 		// 先筛选出已经不存在的租户
 		var inIds, newIds []string
-		for tenantId, _ := range clientInfoMap {
+		clientMapLock.RLock()
+		for tenantId := range clientInfoMap {
 			inIds = append(inIds, tenantId)
 		}
+		clientMapLock.RUnlock()
 		for _, client := range clients {
 			newIds = append(newIds, client.TenantId)
 		}
 		// 算差集，找出已经删除的租户
 		needClearIds := utils.Difference(inIds, newIds)
 		// 清理租户
-		for _, tenantId := range needClearIds {
+		if len(needClearIds) > 0 {
 			clientMapLock.Lock()
-			delete(clientMap, tenantId)
+			for _, tenantId := range needClearIds {
+				delete(clientMap, tenantId)
+				delete(clientInfoMap, tenantId)
+				delete(clientDbInfoMap, tenantId)
+			}
 			clientMapLock.Unlock()
-			delete(clientInfoMap, tenantId)
 		}
 
 		// 更新租户信息
 		for _, c := range clients {
+			clientMapLock.Lock()
 			// 循环已存在数据，匹配是否需要更新
-			for k, old := range clientInfoMap {
-				if c.TenantId == k {
-					// 判断租户信息是否还一致，只要有一项不一致就给改掉 TODO 后面看看需不需要加锁
-					newInfo := c.Info
-					if newInfo.Name == old.Name && newInfo.ShortName == old.ShortName && newInfo.Logo == old.Logo && newInfo.TypeCode == old.TypeCode {
-						break
-					}
-					clientInfoMap[k] = newInfo
-					break
+			if old, exist := clientInfoMap[c.TenantId]; exist {
+				// 判断租户信息是否还一致，只要有一项不一致就给改掉
+				newInfo := c.Info
+				if !(newInfo.Name == old.Name && newInfo.ShortName == old.ShortName && newInfo.Logo == old.Logo && newInfo.TypeCode == old.TypeCode) {
+					clientInfoMap[c.TenantId] = newInfo
 				}
 			}
+			clientMapLock.Unlock()
 		}
 
 		// 处理租户连接信息
@@ -228,8 +232,8 @@ func Add(tdb DatabaseClientInfo) error {
 
 // GetByTenantId 根据租户Id获取数据库连接对象
 func GetByTenantId(tenantId string) (*gorm.DB, error) {
-	clientMapLock.Lock()
-	defer clientMapLock.Unlock()
+	clientMapLock.RLock()
+	defer clientMapLock.RUnlock()
 	if client, exist := clientMap[tenantId]; exist {
 		return client, nil
 	}

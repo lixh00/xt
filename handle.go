@@ -1,8 +1,9 @@
 package xt
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 // GinHandler Gin处理器
@@ -18,7 +19,10 @@ func GinHandler(handler MultiTenantHandlerFunc) gin.HandlerFunc {
 		}
 		mc.TenantId = tid
 		mc.TenantInfo = ti
-		if db, exist := clientMap[tid]; exist {
+		clientMapLock.RLock()
+		db, exist := clientMap[tid]
+		clientMapLock.RUnlock()
+		if exist {
 			mc.DB = db
 		} else {
 			ctx.JSON(http.StatusForbidden, response{http.StatusForbidden, nil, "租户状态异常"})
@@ -36,11 +40,16 @@ func getTenantId(ctx *gin.Context) (id string, info TenantInfo, err error) {
 	if err = ctx.ShouldBindHeader(&p); err != nil {
 		return
 	}
-	return p.TenantId, clientInfoMap[p.TenantId], nil
+	clientMapLock.RLock()
+	info = clientInfoMap[p.TenantId]
+	clientMapLock.RUnlock()
+	return p.TenantId, info, nil
 }
 
 // GetAllTenantInfo 获取所有租户信息
 func GetAllTenantInfo() (datas []TenantInfo) {
+	clientMapLock.RLock()
+	defer clientMapLock.RUnlock()
 	for _, v := range clientInfoMap {
 		datas = append(datas, v)
 	}
